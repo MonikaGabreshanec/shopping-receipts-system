@@ -1,9 +1,14 @@
 package mk.ukim.finki.uiktp.shoppingreceiptssystem.model;
+
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 public class Receipt {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -12,10 +17,19 @@ public class Receipt {
 
     private LocalDateTime uploadedAt;
 
+    @Lob
+    @Column(name = "image_data")
+    private byte[] imageData; // store the image bytes
+
+    @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
+    private List<ReceiptProduct> products = new ArrayList<>();
+
     public Receipt() {
         this.uploadedAt = LocalDateTime.now();
     }
 
+    // Getters and Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -24,4 +38,20 @@ public class Receipt {
 
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }
+
+    public byte[] getImageData() { return imageData; }
+    public void setImageData(byte[] imageData) { this.imageData = imageData; }
+
+    public List<ReceiptProduct> getProducts() { return products; }
+    public void setProducts(List<ReceiptProduct> products) { this.products = products; }
+
+    public void addProduct(ReceiptProduct product) {
+        products.add(product);
+        product.setReceipt(this);
+    }
+
+    public void removeProduct(ReceiptProduct product) {
+        products.remove(product);
+        product.setReceipt(null);
+    }
 }
