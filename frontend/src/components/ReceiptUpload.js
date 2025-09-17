@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { uploadReceipt } from "../services/api";
+import { uploadReceipt, updateReceiptProducts } from "../services/api";
 import ReceiptProductsForm from "./ReceiptProductsForm";
 import "bootstrap/dist/css/bootstrap.min.css";
 
@@ -9,38 +9,63 @@ export default function ReceiptUpload() {
   const [products, setProducts] = useState([]);
   const [receiptId, setReceiptId] = useState(null);
 
-const handleFileChange = (e) => {
-  const selectedFile = e.target.files[0];
-  setFile(selectedFile);
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    setFile(selectedFile);
 
-  // Reset previous upload data
-  setProducts([]);
-  setReceiptId(null);
+    // Reset previous upload data
+    setProducts([]);
+    setReceiptId(null);
 
-  if (selectedFile) {
-    setPreviewUrl(URL.createObjectURL(selectedFile));
-  } else {
-    setPreviewUrl(null);
-  }
-};
+    if (selectedFile) {
+      setPreviewUrl(URL.createObjectURL(selectedFile));
+    } else {
+      setPreviewUrl(null);
+    }
+  };
 
-const handleUpload = async () => {
-  if (!file) return alert("Select a file first!");
+  const handleUpload = async () => {
+    if (!file) return alert("Select a file first!");
 
-  // Reset state before uploading
-  setProducts([]);
-  setReceiptId(null);
+    // Reset state before uploading
+    setProducts([]);
+    setReceiptId(null);
 
-  try {
-    const res = await uploadReceipt(file);
-    setProducts(res.data.products.map(p => ({ ...p, price: parseFloat(p.price) })));
-    setReceiptId(res.data.receiptId);
-  } catch (err) {
-    console.error(err);
-    alert("Failed to upload receipt");
-  }
-};
+    try {
+      const res = await uploadReceipt(file);
+      setProducts(
+        res.data.products.map((p) => ({
+          id: p.id, // make sure id is included if backend provides it
+          name: p.product,
+          price: parseFloat(p.price),
+        }))
+      );
+      setReceiptId(res.data.receiptId);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to upload receipt");
+    }
+  };
 
+  // 🔹 Add this: save handler for ReceiptProductsForm
+  const handleSave = async (updatedProducts) => {
+    if (!receiptId) return;
+
+    try {
+      const payload = updatedProducts.map((p) => ({
+        id: p.id,
+        product: p.name,
+        price: parseFloat(p.price),
+      }));
+
+      await updateReceiptProducts(receiptId, payload);
+      alert("Receipt updated successfully!");
+      setProducts(updatedProducts); // update state with new values
+    } catch (err) {
+      console.error("Failed to update receipt:", err.response?.data || err);
+      alert("Failed to update receipt");
+    }
+  };
 
   return (
     <div className="container mt-5">
@@ -49,41 +74,53 @@ const handleUpload = async () => {
           <h4 className="mb-0">Upload Receipt</h4>
         </div>
         <div className="card-body">
-          <div className="mb-3">
-            <input
-              type="file"
-              className="form-control"
-              onChange={handleFileChange}
-            />
+          {/* File input + button (full width row) */}
+          <div className="row">
+            <div className="input-group mb-3">
+              <input
+                type="file"
+                className="form-control"
+                onChange={handleFileChange}
+              />
+              <button className="btn btn-success" onClick={handleUpload}>
+                Upload Receipt
+              </button>
+            </div>
           </div>
 
-          {previewUrl && (
-            <div className="mb-3 text-center">
-              <img
-                src={previewUrl}
-                alt="Receipt Preview"
-                className="img-fluid border"
-                style={{ maxHeight: "400px" }}
-              />
+          {/* Image on the left, Products form on the right */}
+          <div className="row">
+            <div className="col-md-6 text-center">
+              {previewUrl ? (
+                <img
+                  src={previewUrl}
+                  alt="Receipt Preview"
+                  className="img-fluid border rounded"
+                  style={{ maxHeight: "500px" }}
+                />
+              ) : (
+                <div className="border rounded p-5 text-muted">
+                  No image selected
+                </div>
+              )}
             </div>
-          )}
 
-          <div className="d-grid gap-2">
-            <button className="btn btn-success" onClick={handleUpload}>
-              Upload Receipt
-            </button>
+            <div className="col-md-6">
+              {products.length > 0 && receiptId ? (
+                <ReceiptProductsForm
+                  receiptId={receiptId}
+                  initialProducts={products}
+                  onSave={handleSave}   
+                />
+              ) : (
+                <div className="text-muted">
+                  Upload a receipt to edit products
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-
-      {products.length > 0 && receiptId && (
-        <div className="mt-4">
-          <ReceiptProductsForm
-            receiptId={receiptId}
-            initialProducts={products}
-          />
-        </div>
-      )}
     </div>
   );
 }

@@ -53,7 +53,7 @@ export default function ReceiptProductsForm({ receiptId, initialProducts, onSave
   };
 
   return (
-    <div className="card p-3 my-3 shadow-sm">
+    <div className="card p-3 shadow-sm">
       <h4>Edit Products</h4>
       {products.map((p, index) => (
         <div key={index} className="row align-items-center mb-2">

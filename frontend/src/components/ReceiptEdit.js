@@ -26,58 +26,63 @@ export default function ReceiptEdit() {
           products,
           imageData: data.imageData // base64 string
         });
-          console.log("Loaded receiptId:", data.receiptId); // check
+        console.log("Loaded receiptId:", data.receiptId);
       })
-      
       .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [id]);
 
-const handleSave = async (updatedProducts) => {
-  if (!receipt) return;
+  const handleSave = async (updatedProducts) => {
+    if (!receipt) return;
 
-  try {
-    // Send array directly, not wrapped in { products: [...] }
-    const payload = updatedProducts.map(p => ({
-      id: p.id,
-      product: p.name,
-      price: parseFloat(p.price)
-    }));
+    try {
+      const payload = updatedProducts.map(p => ({
+        id: p.id,
+        product: p.name,
+        price: parseFloat(p.price)
+      }));
 
-    await updateReceiptProducts(receipt.id, payload);
-    alert("Receipt updated successfully!");
-    setReceipt(prev => ({ ...prev, products: updatedProducts }));
-  } catch (err) {
-    console.error("Failed to update receipt:", err.response?.data || err);
-    alert("Failed to update receipt");
-  }
-};
-
+      await updateReceiptProducts(receipt.id, payload);
+      alert("Receipt updated successfully!");
+      setReceipt(prev => ({ ...prev, products: updatedProducts }));
+    } catch (err) {
+      console.error("Failed to update receipt:", err.response?.data || err);
+      alert("Failed to update receipt");
+    }
+  };
 
   if (loading || !receipt) return <div>Loading...</div>;
 
   return (
     <div className="container my-4">
-      <h3>Edit Receipt: {receipt.fileName}</h3>
+      <h3 className="mb-4">Edit Receipt: {receipt.fileName}</h3>
 
-      {receipt.imageData && (
-        <div className="mb-3">
-          <img
-            src={`data:image/jpeg;base64,${receipt.imageData}`}
-            alt={receipt.fileName}
-            className="img-fluid border"
-            style={{ maxHeight: "400px" }}
+      <div className="row">
+        {/* Left: Image */}
+        <div className="col-md-4">
+          {receipt.imageData ? (
+            <img
+              src={`data:image/jpeg;base64,${receipt.imageData}`}
+              alt={receipt.fileName}
+              className="img-fluid border rounded"
+              style={{ maxHeight: "500px" }}
+            />
+          ) : (
+            <div className="border rounded p-5 text-muted">
+              No image available
+            </div>
+          )}
+        </div>
+
+        {/* Right: Products form */}
+        <div className="col-md-8">
+          <ReceiptProductsForm
+            receiptId={receipt.id}
+            initialProducts={receipt.products}
+            onSave={handleSave}
           />
         </div>
-      )}
-
-      <ReceiptProductsForm
-        receiptId={receipt.id}
-                     // <-- important!
-        initialProducts={receipt.products}
-        onSave={handleSave}
-      />
-      
+      </div>
     </div>
   );
 }
