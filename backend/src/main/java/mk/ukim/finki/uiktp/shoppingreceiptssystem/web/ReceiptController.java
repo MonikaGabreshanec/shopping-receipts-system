@@ -106,4 +106,15 @@ public class ReceiptController {
         Receipt saved = receiptService.save(receipt);
         return ResponseEntity.ok(saved);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteReceipt(@PathVariable Long id) {
+        Receipt receipt = receiptService.findById(id);
+        if (receipt == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        receiptService.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
 }

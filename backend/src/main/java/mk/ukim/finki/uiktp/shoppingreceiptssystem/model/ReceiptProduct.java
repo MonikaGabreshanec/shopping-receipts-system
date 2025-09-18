@@ -10,7 +10,7 @@ public class ReceiptProduct {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String product; // renamed from "name"
+    private String product;
 
     private BigDecimal price;
 

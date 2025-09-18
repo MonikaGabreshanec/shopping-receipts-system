@@ -12,5 +12,6 @@ public interface ReceiptService {
 
     Receipt findById(Long id);
     Receipt save(Receipt receipt);
+    void deleteById(Long id);
 
 }

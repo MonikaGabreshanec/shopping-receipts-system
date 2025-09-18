@@ -58,7 +58,6 @@ export default function ReceiptEdit() {
       <h3 className="mb-4">Edit Receipt: {receipt.fileName}</h3>
 
       <div className="row">
-        {/* Left: Image */}
         <div className="col-md-4">
           {receipt.imageData ? (
             <img
@@ -73,13 +72,11 @@ export default function ReceiptEdit() {
             </div>
           )}
         </div>
-
-        {/* Right: Products form */}
         <div className="col-md-8">
           <ReceiptProductsForm
-            receiptId={receipt.id}
-            initialProducts={receipt.products}
-            onSave={handleSave}
+              receiptId={receipt.id}
+              initialProducts={receipt.products}
+              onSave={handleSave}
           />
         </div>
       </div>

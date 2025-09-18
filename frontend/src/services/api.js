@@ -14,3 +14,6 @@ export const getReceiptById = (id) => axios.get(`${API_URL}/receipts/${id}`);
 
 export const updateReceiptProducts = (id, products) =>
   axios.put(`${API_URL}/receipts/${id}/products`, products);
+
+export const deleteReceipt = (id) =>
+    axios.delete(`${API_URL}/receipts/${id}`);

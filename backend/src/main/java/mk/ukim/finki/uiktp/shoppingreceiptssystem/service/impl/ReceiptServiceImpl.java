@@ -103,7 +103,10 @@ public class ReceiptServiceImpl implements ReceiptService {
         return receiptRepository.save(receipt);
     }
 
-
+    @Override
+    public void deleteById(Long id) {
+        receiptRepository.deleteById(id);
+    }
     private HttpRequest.BodyPublisher ofMultipartData(MultipartFile file) throws IOException {
         String boundary = "---WebKitFormBoundary7MA4YWxkTrZu0gW";
         var byteArrays = new ArrayList<byte[]>();

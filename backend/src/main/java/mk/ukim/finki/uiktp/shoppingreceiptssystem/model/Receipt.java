@@ -2,6 +2,7 @@ package mk.ukim.finki.uiktp.shoppingreceiptssystem.model;
 
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,11 +26,20 @@ public class Receipt {
     @JsonManagedReference
     private List<ReceiptProduct> products = new ArrayList<>();
 
+    private BigDecimal total = BigDecimal.ZERO;
+
     public Receipt() {
         this.uploadedAt = LocalDateTime.now();
     }
 
-    // Getters and Setters
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -48,6 +58,9 @@ public class Receipt {
     public void addProduct(ReceiptProduct product) {
         products.add(product);
         product.setReceipt(this);
+        if (product.getPrice() != null) {
+            this.total = this.total.add(product.getPrice());
+        }
     }
 
     public void removeProduct(ReceiptProduct product) {
