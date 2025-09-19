@@ -4,12 +4,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import mk.ukim.finki.uiktp.shoppingreceiptssystem.model.Receipt;
 import mk.ukim.finki.uiktp.shoppingreceiptssystem.model.ReceiptProduct;
+import mk.ukim.finki.uiktp.shoppingreceiptssystem.model.User;
 import mk.ukim.finki.uiktp.shoppingreceiptssystem.repository.ReceiptRepository;
+import mk.ukim.finki.uiktp.shoppingreceiptssystem.repository.UserRepository;
 import mk.ukim.finki.uiktp.shoppingreceiptssystem.service.ReceiptService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URI;
@@ -21,22 +25,39 @@ import java.util.*;
 public class ReceiptServiceImpl implements ReceiptService {
 
     private final ReceiptRepository receiptRepository;
+    private final UserRepository userRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Value("${ocr.api.url}")
     private String ocrApiUrl;
 
-    public ReceiptServiceImpl(ReceiptRepository receiptRepository) {
+    public ReceiptServiceImpl(ReceiptRepository receiptRepository, UserRepository userRepository) {
         this.receiptRepository = receiptRepository;
+        this.userRepository = userRepository;
     }
 
+    // Helper method to get the currently logged-in user
+    private User getLoggedInUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String email;
+        if (principal instanceof UserDetails) {
+            email = ((UserDetails) principal).getUsername();
+        } else {
+            email = principal.toString();
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
+    }
     @Override
     public Map<String, Object> uploadAndProcess(MultipartFile file) throws IOException, InterruptedException {
+        User user = getLoggedInUser();  // Link receipt to logged-in user
+
         // 1️⃣ Create a new receipt
         Receipt receipt = new Receipt();
         receipt.setFileName(file.getOriginalFilename());
         receipt.setUploadedAt(LocalDateTime.now());
         receipt.setImageData(file.getBytes()); // save the image bytes
+        receipt.setUser(user);  // Link receipt to user
 
         // Save the receipt first to generate an ID
         receiptRepository.save(receipt);
@@ -90,8 +111,11 @@ public class ReceiptServiceImpl implements ReceiptService {
 
 
     @Override
+    @Transactional(readOnly = true) // <-- add this
     public List<Receipt> findAll() {
-        return receiptRepository.findAll();
+        // Return only receipts of the currently logged-in user
+        User user = getLoggedInUser();
+        return receiptRepository.findByUser(user);
     }
 
     @Override

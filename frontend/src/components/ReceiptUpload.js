@@ -25,7 +25,7 @@ export default function ReceiptUpload() {
   };
 
   const handleUpload = async () => {
-    if (!file) return alert("Select a file first!");
+    if (!file) return alert("Изберете сметка!");
 
     // Reset state before uploading
     setProducts([]);
@@ -43,7 +43,7 @@ export default function ReceiptUpload() {
       setReceiptId(res.data.receiptId);
     } catch (err) {
       console.error(err);
-      alert("Failed to upload receipt");
+      alert("Неуспешно поставување на сметка!");
     }
   };
 
@@ -59,11 +59,11 @@ export default function ReceiptUpload() {
       }));
 
       await updateReceiptProducts(receiptId, payload);
-      alert("Receipt updated successfully!");
+      alert("Успешно поставена сметка!");
       setProducts(updatedProducts); // update state with new values
     } catch (err) {
       console.error("Failed to update receipt:", err.response?.data || err);
-      alert("Failed to update receipt");
+      alert("Неуспешно ажурирање!");
     }
   };
 
@@ -71,7 +71,7 @@ export default function ReceiptUpload() {
     <div className="container mt-5">
       <div className="card shadow-sm">
         <div className="card-header bg-primary text-white">
-          <h4 className="mb-0">Upload Receipt</h4>
+          <h4 className="mb-0">Поставете сметка</h4>
         </div>
         <div className="card-body">
           {/* File input + button (full width row) */}
@@ -83,7 +83,7 @@ export default function ReceiptUpload() {
                 onChange={handleFileChange}
               />
               <button className="btn btn-success" onClick={handleUpload}>
-                Upload Receipt
+                Поставете сметка
               </button>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function ReceiptUpload() {
                 />
               ) : (
                 <div className="border rounded p-5 text-muted">
-                  No image selected
+                  Нема изберена сметка
                 </div>
               )}
             </div>
@@ -114,7 +114,7 @@ export default function ReceiptUpload() {
                 />
               ) : (
                 <div className="text-muted">
-                  Upload a receipt to edit products
+                  Поставете сметка за да ги изменете продуктите
                 </div>
               )}
             </div>

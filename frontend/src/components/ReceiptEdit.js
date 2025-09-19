@@ -43,11 +43,11 @@ export default function ReceiptEdit() {
       }));
 
       await updateReceiptProducts(receipt.id, payload);
-      alert("Receipt updated successfully!");
+      alert("Успешно ажурирана сметка!");
       setReceipt(prev => ({ ...prev, products: updatedProducts }));
     } catch (err) {
       console.error("Failed to update receipt:", err.response?.data || err);
-      alert("Failed to update receipt");
+      alert("Неуспешно ажурирање!");
     }
   };
 
@@ -55,7 +55,7 @@ export default function ReceiptEdit() {
 
   return (
     <div className="container my-4">
-      <h3 className="mb-4">Edit Receipt: {receipt.fileName}</h3>
+      <h3 className="mb-4">Ажурирајте сметка: {receipt.fileName}</h3>
 
       <div className="row">
         <div className="col-md-4">
@@ -68,7 +68,7 @@ export default function ReceiptEdit() {
             />
           ) : (
             <div className="border rounded p-5 text-muted">
-              No image available
+              Не постои слика
             </div>
           )}
         </div>
