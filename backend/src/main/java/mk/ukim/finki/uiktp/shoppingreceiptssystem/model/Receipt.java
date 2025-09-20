@@ -1,5 +1,6 @@
 package mk.ukim.finki.uiktp.shoppingreceiptssystem.model;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
@@ -26,11 +27,19 @@ public class Receipt {
     @JsonManagedReference
     private List<ReceiptProduct> products = new ArrayList<>();
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    @JsonBackReference
+    private User user;
+
     private BigDecimal total = BigDecimal.ZERO;
 
     public Receipt() {
         this.uploadedAt = LocalDateTime.now();
     }
+
+    public User getUser() { return user; }
+    public void setUser(User user) { this.user = user; }
 
     public BigDecimal getTotal() {
         return total;

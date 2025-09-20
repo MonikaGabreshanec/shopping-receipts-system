@@ -1,47 +1,35 @@
-import {useState, useEffect} from "react";
-import {useNavigate} from "react-router-dom";
-import {getAllReceipts, deleteReceipt} from "../services/api";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { getAllReceipts, deleteReceipt } from "../services/api";
+import "./ReceiptsList.css";
 
 export default function ReceiptsList() {
-    const [groupedReceipts, setGroupedReceipts] = useState({});
-    const [filteredReceipts, setFilteredReceipts] = useState({});
-    const [currentPage, setCurrentPage] = useState({});
-    const [dateRange, setDateRange] = useState({from: "", to: ""});
-    const receiptsPerPage = 5;
-
     const navigate = useNavigate();
 
+    // Local dates
+    const today = new Date();
+    const formattedToday = today.toLocaleDateString("en-CA"); // YYYY-MM-DD
+    const formattedMonth = today.toLocaleDateString("en-CA", { year: 'numeric', month: '2-digit' }).slice(0, 7); // YYYY-MM
+
+    const receiptsPerPage = 5;
+
+    const [receipts, setReceipts] = useState([]);
+    const [activeTab, setActiveTab] = useState("Дневни");
+    const [dateRange, setDateRange] = useState({ from: "", to: "" });
+    const [selectedDate, setSelectedDate] = useState(formattedToday);
+    const [selectedMonth, setSelectedMonth] = useState(formattedMonth);
+    const [currentPage, setCurrentPage] = useState({
+        "Дневни": 1,
+        "Месечни": 1,
+        "Сите": 1,
+    });
+
     useEffect(() => {
-        getAllReceipts().then(res => {
-            const receipts = res.data;
-
-            const now = new Date();
-            const startOfToday = new Date(now.setHours(0, 0, 0, 0));
-            const startOfWeek = new Date();
-            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-
-            const groups = {
-                Today: [],
-                "This Week": [],
-                Older: []
-            };
-
-            receipts.forEach(r => {
-                const uploaded = new Date(r.uploadedAt);
-                if (uploaded >= startOfToday) {
-                    groups.Today.push(r);
-                } else if (uploaded >= startOfWeek) {
-                    groups["This Week"].push(r);
-                } else {
-                    groups.Older.push(r);
-                }
-            });
-
-            setGroupedReceipts(groups);
-            setFilteredReceipts(groups);
-            const initPages = {};
-            Object.keys(groups).forEach(k => (initPages[k] = 1));
-            setCurrentPage(initPages);
+        getAllReceipts().then((res) => {
+            const sorted = res.data.sort(
+                (a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)
+            );
+            setReceipts(sorted);
         });
     }, []);
 
@@ -49,165 +37,162 @@ export default function ReceiptsList() {
         if (!window.confirm("Дали си сигурен/а дека сакаш да ја избришеш фискалната?")) return;
         try {
             await deleteReceipt(id);
-            setFilteredReceipts(prev => {
-                const newGroups = {...prev};
-                for (const key in newGroups) {
-                    newGroups[key] = newGroups[key].filter(r => r.id !== id);
-                }
-                return newGroups;
-            });
+            setReceipts(prev => prev.filter(r => r.id !== id));
         } catch (err) {
             console.error("Error deleting receipt:", err);
             alert("Неуспешно бришење!");
         }
     };
 
-    const handleDateRangeChange = (field, value) => {
-        const newRange = {...dateRange, [field]: value};
-        setDateRange(newRange);
+    const filteredReceipts = receipts.filter((r) => {
+        const uploaded = new Date(r.uploadedAt);
 
-        if (!newRange.from && !newRange.to) {
-            setFilteredReceipts(groupedReceipts);
-            return;
+        if (activeTab === "Дневни" && selectedDate) {
+            const [year, month, day] = selectedDate.split("-").map(Number);
+            return uploaded.getFullYear() === year &&
+                   uploaded.getMonth() + 1 === month &&
+                   uploaded.getDate() === day;
         }
 
-        const fromDate = newRange.from ? new Date(newRange.from) : null;
-        const toDate = newRange.to ? new Date(newRange.to) : null;
-
-        const filtered = {};
-        for (const [label, receipts] of Object.entries(groupedReceipts)) {
-            filtered[label] = receipts.filter(r => {
-                const uploaded = new Date(r.uploadedAt);
-                if (fromDate && uploaded < fromDate) return false;
-                if (toDate && uploaded > toDate) return false;
-                return true;
-            });
+        if (activeTab === "Месечни" && selectedMonth) {
+            const [year, month] = selectedMonth.split("-").map(Number);
+            return uploaded.getFullYear() === year &&
+                   uploaded.getMonth() + 1 === month;
         }
-        setFilteredReceipts(filtered);
+
+        if (activeTab === "Сите") {
+            const fromDate = dateRange.from ? new Date(dateRange.from) : null;
+            const toDate = dateRange.to ? new Date(dateRange.to) : null;
+
+            if (fromDate && uploaded < fromDate) return false;
+            if (toDate && uploaded > toDate) return false;
+        }
+
+        return true;
+    });
+
+    const totalPages = Math.ceil(filteredReceipts.length / receiptsPerPage);
+    const page = currentPage[activeTab] || 1;
+    const startIndex = (page - 1) * receiptsPerPage;
+    const paginatedReceipts = filteredReceipts.slice(startIndex, startIndex + receiptsPerPage);
+
+    const handlePageChange = (newPage) => {
+        setCurrentPage(prev => ({ ...prev, [activeTab]: newPage }));
     };
 
     return (
-        <div className="container my-4">
-            <div className="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                <h3 className="mb-0">All Receipts</h3>
-                <div className="d-flex gap-2">
-                    <div>
-                        <label className="form-label mb-0 small">From:</label>
-                        <input
-                            type="date"
-                            value={dateRange.from}
-                            onChange={(e) => handleDateRangeChange("from", e.target.value)}
-                            className="form-control"
-                        />
-                    </div>
-                    <div>
-                        <label className="form-label mb-0 small">To:</label>
-                        <input
-                            type="date"
-                            value={dateRange.to}
-                            onChange={(e) => handleDateRangeChange("to", e.target.value)}
-                            className="form-control"
-                        />
-                    </div>
+        <div className="receipts-page">
+            <div className="container">
+                {/* Tabs */}
+                <ul className="nav nav-tabs">
+                    {["Дневни", "Месечни", "Сите"].map(tab => (
+                        <li className="nav-item" key={tab}>
+                            <button
+                                className={`nav-link ${activeTab === tab ? "active" : ""}`}
+                                onClick={() => { setActiveTab(tab); handlePageChange(1); }}
+                                type="button"
+                            >
+                                {tab}
+                            </button>
+                        </li>
+                    ))}
+                </ul>
+
+                {/* Filters */}
+                <div className="mb-3 d-flex gap-3 flex-wrap align-items-end filters-section">
+                    {activeTab === "Дневни" && (
+                        <div className="d-flex flex-column">
+                            <label className="form-label small">Избери ден:</label>
+                            <input
+                                type="date"
+                                value={selectedDate}
+                                onChange={(e) => { setSelectedDate(e.target.value); handlePageChange(1); }}
+                                className="form-control form-control-sm"
+                                style={{ maxWidth: "150px" }}
+                            />
+                        </div>
+                    )}
+
+                    {activeTab === "Месечни" && (
+                        <div className="d-flex flex-column">
+                            <label className="form-label small">Избери месец:</label>
+                            <input
+                                type="month"
+                                value={selectedMonth}
+                                onChange={(e) => { setSelectedMonth(e.target.value); handlePageChange(1); }}
+                                className="form-control form-control-sm"
+                                style={{ maxWidth: "150px" }}
+                            />
+                        </div>
+                    )}
+
+                    {activeTab === "Сите" && (
+                        <>
+                            <div className="d-flex flex-column">
+                                <label className="form-label small">Од:</label>
+                                <input
+                                    type="date"
+                                    value={dateRange.from}
+                                    onChange={(e) => { setDateRange(prev => ({ ...prev, from: e.target.value })); handlePageChange(1); }}
+                                    className="form-control form-control-sm"
+                                    style={{ maxWidth: "150px" }}
+                                />
+                            </div>
+                            <div className="d-flex flex-column">
+                                <label className="form-label small">До:</label>
+                                <input
+                                    type="date"
+                                    value={dateRange.to}
+                                    onChange={(e) => { setDateRange(prev => ({ ...prev, to: e.target.value })); handlePageChange(1); }}
+                                    className="form-control form-control-sm"
+                                    style={{ maxWidth: "150px" }}
+                                />
+                            </div>
+                        </>
+                    )}
                 </div>
-            </div>
 
-            {Object.entries(filteredReceipts).map(([label, receipts]) => {
-                if (receipts.length === 0) return null;
-
-                const page = currentPage[label] || 1;
-                const startIndex = (page - 1) * receiptsPerPage;
-                const paginated = receipts.slice(startIndex, startIndex + receiptsPerPage);
-                const totalPages = Math.ceil(receipts.length / receiptsPerPage);
-
-                return (
-                    <div key={label} className="mb-5">
-                        <h4 className="mb-3">{label}</h4>
-                        <div className="row g-4">
-                            {paginated.map((r) => (
-                                <div key={r.id} className="col-sm-6 col-md-4 col-lg-3">
-                                    <div className="card h-100 shadow-sm">
-                                        <div className="row g-0 h-100">
-                                            {r.imageData && (
-                                                <div
-                                                    className="col-12 d-flex justify-content-center align-items-center p-2"
-                                                    style={{cursor: "pointer"}}
-                                                    onClick={() => navigate(`/receipts/${r.id}`)}
-                                                >
-                                                    <img
-                                                        src={`data:image/jpeg;base64,${r.imageData}`}
-                                                        alt={r.fileName}
-                                                        className="img-fluid rounded"
-                                                        style={{
-                                                            maxHeight: "200px",
-                                                            width: "100%",
-                                                            objectFit: "cover"
-                                                        }}
-                                                    />
-                                                </div>
-                                            )}
-
-                                            <div className="col-12">
-                                                <div className="card-body text-center">
-                                                    <h5 className="card-title mb-2">{r.fileName}</h5>
-                                                    <p className="card-text text-muted mb-2">
-                                                        {r.products.length} products
-                                                    </p>
-                                                    <p className="fw-bold">
-                                                        Total: {r.products.reduce((sum, p) => sum + parseFloat(p.price), 0).toFixed(2)} ден
-                                                    </p>
-                                                    <small className="text-muted">
-                                                        Uploaded: {new Date(r.uploadedAt).toLocaleString()}
-                                                    </small>
-                                                    <br/>
-                                                    <button
-                                                        className="btn btn-sm btn-outline-danger mt-2"
-                                                        onClick={() => handleDelete(r.id)}
-                                                    >
-                                                        🗑 Remove
-                                                    </button>
-                                                </div>
+                {/* Receipts List */}
+                <div className="row">
+                    <div className="col-md-6">
+                        {paginatedReceipts.length === 0 ? (
+                            <p className="text-muted">Нема пронајдени сметки.</p>
+                        ) : (
+                            <ul className="list-group shadow-sm">
+                                {paginatedReceipts.map((r) => (
+                                    <li key={r.id} className="list-group-item d-flex align-items-center justify-content-between receipt-item">
+                                        <div className="d-flex align-items-center gap-3" style={{ cursor: "pointer" }} onClick={() => navigate(`/receipts/${r.id}`)}>
+                                            {r.imageData && <img src={`data:image/jpeg;base64,${r.imageData}`} alt={r.fileName} style={{ width: "60px", height: "60px", objectFit: "cover", borderRadius: "5px" }} />}
+                                            <div className="d-flex flex-column">
+                                                <span>{r.fileName}</span>
+                                                <small className="text-muted">{new Date(r.uploadedAt).toLocaleString()}</small>
+                                                <span className="fw-semibold">Вкупно: {r.products.reduce((sum, p) => sum + parseFloat(p.price), 0).toFixed(2)} ден</span>
                                             </div>
                                         </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" className="bi bi-trash text-danger" style={{ cursor: "pointer" }} viewBox="0 0 16 16" onClick={() => handleDelete(r.id)}>
+                                            <path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5m3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0z"/>
+                                            <path d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4zM2.5 3h11V2h-11z"/>
+                                        </svg>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
 
                         {totalPages > 1 && (
                             <div className="d-flex justify-content-center align-items-center mt-3 gap-2">
-                                <button
-                                    className="btn btn-sm btn-outline-secondary"
-                                    disabled={page === 1}
-                                    onClick={() =>
-                                        setCurrentPage(prev => ({
-                                            ...prev,
-                                            [label]: page - 1
-                                        }))
-                                    }
-                                >
-                                    Претходно
-                                </button>
-                                <span>
-                                    Страница {page} of {totalPages}
-                                </span>
-                                <button
-                                    className="btn btn-sm btn-outline-secondary"
-                                    disabled={page === totalPages}
-                                    onClick={() =>
-                                        setCurrentPage(prev => ({
-                                            ...prev,
-                                            [label]: page + 1
-                                        }))
-                                    }
-                                >
-                                    Следно
-                                </button>
+                                <button className="btn btn-sm btn-outline-secondary" disabled={page === 1} onClick={() => handlePageChange(page - 1)}>Претходно</button>
+                                <span>Страница {page} / {totalPages}</span>
+                                <button className="btn btn-sm btn-outline-secondary" disabled={page === totalPages} onClick={() => handlePageChange(page + 1)}>Следно</button>
                             </div>
                         )}
                     </div>
-                );
-            })}
+
+                    <div className="col-md-6 d-flex align-items-center justify-content-center text-muted">
+                        <p>Statistics / Graphs will go here</p>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }

@@ -2,9 +2,13 @@ package mk.ukim.finki.uiktp.shoppingreceiptssystem.web;
 
 import mk.ukim.finki.uiktp.shoppingreceiptssystem.model.Receipt;
 import mk.ukim.finki.uiktp.shoppingreceiptssystem.model.ReceiptProduct;
+import mk.ukim.finki.uiktp.shoppingreceiptssystem.model.User;
+import mk.ukim.finki.uiktp.shoppingreceiptssystem.repository.UserRepository;
 import mk.ukim.finki.uiktp.shoppingreceiptssystem.service.ReceiptService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,6 +24,21 @@ public class ReceiptController {
 
     @Autowired
     private ReceiptService receiptService;
+    @Autowired
+    private UserRepository userRepository;
+
+    // Helper to get the logged-in user
+    private User getLoggedInUser() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String email;
+        if (principal instanceof UserDetails) {
+            email = ((UserDetails) principal).getUsername();
+        } else {
+            email = principal.toString();
+        }
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Logged-in user not found"));
+    }
 
     // 1️⃣ Upload a receipt and get extracted products
     @PostMapping("/upload")
@@ -44,6 +63,7 @@ public class ReceiptController {
     // 2️⃣ Get all receipts
     @GetMapping
     public ResponseEntity<List<Receipt>> getAllReceipts() {
+        User user = getLoggedInUser();
         List<Receipt> receipts = receiptService.findAll();
         return ResponseEntity.ok(receipts);
     }
@@ -54,6 +74,10 @@ public class ReceiptController {
         Receipt receipt = receiptService.findById(id);
         if (receipt == null) {
             return ResponseEntity.notFound().build();
+        }
+        User user = getLoggedInUser();
+        if (!receipt.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).build(); // Forbidden
         }
 
         // Convert image bytes to Base64 string
@@ -99,6 +123,11 @@ public class ReceiptController {
             return ResponseEntity.notFound().build();
         }
 
+        User user = getLoggedInUser();
+        if (!receipt.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).build();
+        }
+
         // Remove existing products and add updated ones
         receipt.getProducts().clear();
         updatedProducts.forEach(receipt::addProduct);
@@ -112,6 +141,11 @@ public class ReceiptController {
         Receipt receipt = receiptService.findById(id);
         if (receipt == null) {
             return ResponseEntity.notFound().build();
+        }
+
+        User user = getLoggedInUser();
+        if (!receipt.getUser().getId().equals(user.getId())) {
+            return ResponseEntity.status(403).build();
         }
 
         receiptService.deleteById(id);

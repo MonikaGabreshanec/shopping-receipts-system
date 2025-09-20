@@ -1,0 +1,21 @@
+/* Submenu bar: stick directly under navbar, no gap or rounding */
+
+/* Inactive tabs look flat */
+.nav-link {
+  background: transparent;
+  color: #212529;
+  border: none;
+  transition: background-color 0.2s ease;
+}
+
+/* Hover */
+.nav-tabs .nav-link:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+  color: #000;
+}
+
+
+/* Add space before filters */
+.filters-section {
+  margin-top: 1rem; /* space above Choose Date/Month/From-To */
+}
