@@ -38,6 +38,7 @@ export default function ReceiptUpload() {
           id: p.id, // make sure id is included if backend provides it
           name: p.product,
           price: parseFloat(p.price),
+          category: p.category || ""
         }))
       );
       setReceiptId(res.data.receiptId);
@@ -55,6 +56,7 @@ export default function ReceiptUpload() {
         id: p.id,
         product: p.name,
         price: parseFloat(p.price),
+        category: p.category || "" 
       }));
       await updateReceiptProducts(receiptId, payload);
       alert("Успешно поставена сметка!");
@@ -80,7 +82,7 @@ export default function ReceiptUpload() {
               backgroundColor: "white",
               borderRadius: "30px",
               padding: "40px",
-              maxWidth: "900px",
+              maxWidth: "1100px",
               width: "100%",
               boxShadow: "0 15px 30px rgba(0,0,0,0.2)",
             }}
@@ -97,7 +99,7 @@ export default function ReceiptUpload() {
           </div>
 
           <div className="row">
-            <div className="col-md-6 text-center mb-3">
+            <div className="col-md-4 text-center mb-3">
               {previewUrl ? (
                   <img
                       src={previewUrl}
@@ -110,7 +112,7 @@ export default function ReceiptUpload() {
               )}
             </div>
 
-            <div className="col-md-6">
+            <div className="col-md-8">
               {products.length > 0 && receiptId ? (
                   <ReceiptProductsForm
                       receiptId={receiptId}

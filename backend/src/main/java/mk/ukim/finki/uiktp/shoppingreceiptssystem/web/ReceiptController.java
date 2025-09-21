@@ -101,6 +101,7 @@ public class ReceiptController {
                     prodMap.put("id", p.getId());
                     prodMap.put("product", p.getProduct()); // frontend expects "product"
                     prodMap.put("price", p.getPrice());
+                    prodMap.put("category", p.getCategory());
                     return prodMap;
                 })
                 .collect(Collectors.toList())
@@ -128,9 +129,17 @@ public class ReceiptController {
             return ResponseEntity.status(403).build();
         }
 
-        // Remove existing products and add updated ones
         receipt.getProducts().clear();
-        updatedProducts.forEach(receipt::addProduct);
+
+        updatedProducts.forEach(p -> {
+            ReceiptProduct rp = new ReceiptProduct(
+                    p.getProduct(),
+                    p.getPrice(),
+                    p.getCategory(), // make sure category is included
+                    receipt
+            );
+            receipt.addProduct(rp);
+        });
 
         Receipt saved = receiptService.save(receipt);
         return ResponseEntity.ok(saved);

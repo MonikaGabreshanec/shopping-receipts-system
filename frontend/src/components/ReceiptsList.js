@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAllReceipts, deleteReceipt } from "../services/api";
 import "./ReceiptsList.css";
+import Statistics from "./Statistics"; 
+
 
 export default function ReceiptsList() {
     const navigate = useNavigate();
@@ -189,7 +191,7 @@ export default function ReceiptsList() {
                     </div>
 
                     <div className="col-md-6 d-flex align-items-center justify-content-center text-muted">
-                        <p>Statistics / Graphs will go here</p>
+                        <Statistics receipts={filteredReceipts} activeTab={activeTab} selectedDate={selectedDate} selectedMonth={selectedMonth} />
                     </div>
                 </div>
             </div>

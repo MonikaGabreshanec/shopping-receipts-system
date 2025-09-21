@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { registerUser } from "../services/authService";
 import "../css/register.css";
 
@@ -8,6 +9,8 @@ function Register() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [message, setMessage] = useState("");
+
+    const navigate = useNavigate(); 
 
     const handleRegister = async (e) => {
         e.preventDefault();
@@ -20,6 +23,7 @@ function Register() {
                 localStorage.setItem("name", name);
                 localStorage.setItem("surname", surname);
             }
+            navigate("/login", { replace: true });
         } catch (err) {
             setMessage(err.response?.data?.message || "Registration failed");
         }

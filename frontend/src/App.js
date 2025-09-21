@@ -17,12 +17,9 @@ const ProtectedRoute = ({ isLoggedIn, children }) => {
 };
 
 function App() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const token = localStorage.getItem("access_token");
-    setIsLoggedIn(!!token);
-  }, []);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    return !!localStorage.getItem("access_token");
+  });
 
   const handleLogout = () => {
     localStorage.removeItem("access_token");
