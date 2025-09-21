@@ -5,14 +5,47 @@ const Home = () => {
   const surname = localStorage.getItem("surname");
 
   return (
-    <div className="mt-5 text-center">
-      {name ? (
-        <h2>Welcome, {name} {surname}!</h2>
-      ) : (
-        <h2>Welcome to the Shopping Receipts System</h2>
-      )}
-      <p>Please login or register to manage your receipts.</p>
-    </div>
+      <div
+          style={{
+            minHeight: "100vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+              background: "linear-gradient(135deg, #e0f7ff 0%, #ffffff 85%, #e0f7ff 100%)",
+            padding: "20px",
+          }}
+      >
+        <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "30px",
+              padding: "50px",
+              maxWidth: "600px",
+              textAlign: "center",
+              boxShadow: "0 15px 30px rgba(0,0,0,0.2)",
+            }}
+        >
+          {name ? (
+              <>
+                <h1 style={{ fontSize: "36px", fontWeight: "700", color: "#111827", marginBottom: "15px" }}>
+                  Добредојде, {name} {surname}!
+                </h1>
+                <p style={{ fontSize: "18px", color: "#6B7280" }}>
+                  Сега можете да ги управувате вашите фискални сметки лесно и брзо.
+                </p>
+              </>
+          ) : (
+              <>
+                <h1 style={{ fontSize: "36px", fontWeight: "700", color: "#111827", marginBottom: "15px" }}>
+                  Добредојде во Системот за Фискални Сметки
+                </h1>
+                <p style={{ fontSize: "18px", color: "#6B7280" }}>
+                  Најавете се или регистрирајте се за да ги следите и управувате вашите сметки.
+                </p>
+              </>
+          )}
+        </div>
+      </div>
   );
 };
 

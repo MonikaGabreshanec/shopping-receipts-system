@@ -47,7 +47,6 @@ export default function ReceiptUpload() {
     }
   };
 
-  // 🔹 Add this: save handler for ReceiptProductsForm
   const handleSave = async (updatedProducts) => {
     if (!receiptId) return;
 
@@ -57,10 +56,9 @@ export default function ReceiptUpload() {
         product: p.name,
         price: parseFloat(p.price),
       }));
-
       await updateReceiptProducts(receiptId, payload);
       alert("Успешно поставена сметка!");
-      setProducts(updatedProducts); // update state with new values
+      setProducts(updatedProducts);
     } catch (err) {
       console.error("Failed to update receipt:", err.response?.data || err);
       alert("Неуспешно ажурирање!");
@@ -68,59 +66,65 @@ export default function ReceiptUpload() {
   };
 
   return (
-    <div className="container mt-5">
-      <div className="card shadow-sm">
-        <div className="card-header bg-primary text-white">
-          <h4 className="mb-0">Поставете сметка</h4>
-        </div>
-        <div className="card-body">
-          {/* File input + button (full width row) */}
-          <div className="row">
-            <div className="input-group mb-3">
-              <input
-                type="file"
-                className="form-control"
-                onChange={handleFileChange}
-              />
-              <button className="btn btn-success" onClick={handleUpload}>
-                Поставете сметка
-              </button>
-            </div>
+      <div
+          style={{
+            minHeight: "100vh",
+            padding: "20px",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+          }}
+      >
+        <div
+            style={{
+              backgroundColor: "white",
+              borderRadius: "30px",
+              padding: "40px",
+              maxWidth: "900px",
+              width: "100%",
+              boxShadow: "0 15px 30px rgba(0,0,0,0.2)",
+            }}
+        >
+          <h3 className="mb-4 text-center" style={{ color: "#111827", fontWeight: 700 }}>
+            Поставете сметка
+          </h3>
+
+          <div className="input-group mb-4">
+            <input type="file" className="form-control" onChange={handleFileChange} />
+            <button className="btn btn-primary" onClick={handleUpload}>
+              Поставете сметка
+            </button>
           </div>
 
-          {/* Image on the left, Products form on the right */}
           <div className="row">
-            <div className="col-md-6 text-center">
+            <div className="col-md-6 text-center mb-3">
               {previewUrl ? (
-                <img
-                  src={previewUrl}
-                  alt="Receipt Preview"
-                  className="img-fluid border rounded"
-                  style={{ maxHeight: "500px" }}
-                />
+                  <img
+                      src={previewUrl}
+                      alt="Receipt Preview"
+                      className="img-fluid border rounded"
+                      style={{ maxHeight: "400px" }}
+                  />
               ) : (
-                <div className="border rounded p-5 text-muted">
-                  Нема изберена сметка
-                </div>
+                  <div className="border rounded p-5 text-muted">Нема изберена сметка</div>
               )}
             </div>
 
             <div className="col-md-6">
               {products.length > 0 && receiptId ? (
-                <ReceiptProductsForm
-                  receiptId={receiptId}
-                  initialProducts={products}
-                  onSave={handleSave}   
-                />
+                  <ReceiptProductsForm
+                      receiptId={receiptId}
+                      initialProducts={products}
+                      onSave={handleSave}
+                  />
               ) : (
-                <div className="text-muted">
-                  Поставете сметка за да ги изменете продуктите
-                </div>
+                  <div className="text-muted">
+                    Поставете сметка за да ги изменете продуктите
+                  </div>
               )}
             </div>
           </div>
         </div>
       </div>
-    </div>
   );
 }

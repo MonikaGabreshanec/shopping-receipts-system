@@ -34,65 +34,84 @@ function App() {
 
   return (
     <Router>
-      <div className="container">
-        <nav className="navbar navbar-expand-lg navbar-light bg-light mb-3">
-          <Link className="navbar-brand" to="/">Систем за сметки</Link>
-          <div className="collapse navbar-collapse">
-            <ul className="navbar-nav ms-auto">
-              {isLoggedIn ? (
-                <>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="/upload">Скенирај сметка</NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="/receipts">Мои сметки</NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <button className="btn btn-link nav-link" onClick={handleLogout}>Logout</button>
-                  </li>
-                </>
-              ) : (
-                <>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="/login">Login</NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink className="nav-link" to="/register">Register</NavLink>
-                  </li>
-                </>
-              )}
-            </ul>
+      <div className="container-fluid min-vh-100 d-flex flex-column" style={{padding: 0}}>
+        <nav className="navbar navbar-expand-lg navbar-dark bg-secondary shadow-sm py-3">
+          <div className="container-fluid px-4">
+            <Link className="navbar-brand fw-bold" to="/">Систем за сметки</Link>
+            <button
+                className="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarContent"
+                aria-controls="navbarContent"
+                aria-expanded="false"
+                aria-label="Toggle navigation"
+            >
+              <span className="navbar-toggler-icon"></span>
+            </button>
+
+            <div className="collapse navbar-collapse" id="navbarContent">
+              <ul className="navbar-nav ms-auto align-items-center gap-2">
+                {isLoggedIn ? (
+                    <>
+                      <li className="nav-item">
+                        <NavLink className="nav-link text-light fw-semibold" to="/upload">Скенирај сметка</NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link text-light fw-semibold" to="/receipts">Мои сметки</NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <button
+                            className="btn btn-outline-light btn-sm fw-semibold"
+                            onClick={handleLogout}
+                        >
+                          Logout
+                        </button>
+                      </li>
+                    </>
+                ) : (
+                    <>
+                      <li className="nav-item">
+                        <NavLink className="nav-link text-light fw-semibold" to="/login">Login</NavLink>
+                      </li>
+                      <li className="nav-item">
+                        <NavLink className="nav-link text-light fw-semibold" to="/register">Register</NavLink>
+                      </li>
+                    </>
+                )}
+              </ul>
+            </div>
           </div>
         </nav>
 
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home/>}/>
           <Route
-            path="/upload"
-            element={
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <ReceiptUpload />
-              </ProtectedRoute>
-            }
+              path="/upload"
+              element={
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <ReceiptUpload/>
+                </ProtectedRoute>
+              }
           />
           <Route
-            path="/receipts"
-            element={
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <ReceiptsList />
-              </ProtectedRoute>
-            }
+              path="/receipts"
+              element={
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <ReceiptsList/>
+                </ProtectedRoute>
+              }
           />
           <Route
-            path="/receipts/:id"
-            element={
-              <ProtectedRoute isLoggedIn={isLoggedIn}>
-                <ReceiptEdit />
-              </ProtectedRoute>
-            }
+              path="/receipts/:id"
+              element={
+                <ProtectedRoute isLoggedIn={isLoggedIn}>
+                  <ReceiptEdit/>
+                </ProtectedRoute>
+              }
           />
-          <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn} />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/login" element={<Login setIsLoggedIn={setIsLoggedIn}/>}/>
+          <Route path="/register" element={<Register/>}/>
         </Routes>
       </div>
     </Router>
