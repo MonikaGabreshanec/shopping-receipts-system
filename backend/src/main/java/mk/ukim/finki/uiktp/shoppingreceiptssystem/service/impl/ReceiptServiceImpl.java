@@ -20,6 +20,7 @@ import java.net.URI;
 import java.net.http.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class ReceiptServiceImpl implements ReceiptService {
@@ -84,11 +85,13 @@ public class ReceiptServiceImpl implements ReceiptService {
         for (Map<String, String> productMap : extractedProducts) {
             String productName = productMap.get("product"); // get product name
             String priceStr = productMap.get("price");
+            String category = productMap.get("category");
 
             if (productName != null && priceStr != null) {
                 ReceiptProduct rp = new ReceiptProduct();
                 rp.setProduct(productName); // <-- set name correctly
                 rp.setPrice(new BigDecimal(priceStr));
+                rp.setCategory(category);
                 rp.setReceipt(receipt);
                 receipt.addProduct(rp);
             }
@@ -104,6 +107,18 @@ public class ReceiptServiceImpl implements ReceiptService {
         result.put("uploadedAt", receipt.getUploadedAt());
         result.put("imageData", receipt.getImageData()); // optional: to send to frontend
         result.put("products", receipt.getProducts());
+
+        // ✅ Explicit mapping (same as in getReceiptById)
+        List<Map<String, Object>> productsList = receipt.getProducts().stream()
+                .map(p -> {
+                    Map<String, Object> prodMap = new HashMap<>();
+                    prodMap.put("id", p.getId());
+                    prodMap.put("product", p.getProduct());   // key matches frontend
+                    prodMap.put("price", p.getPrice());
+                    prodMap.put("category", p.getCategory());
+                    return prodMap;
+                })
+                .collect(Collectors.toList());
 
         return result;
     }

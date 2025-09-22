@@ -17,7 +17,8 @@ export default function ReceiptEdit() {
         const products = data.products.map(p => ({
           id: p.id,
           name: p.product,
-          price: parseFloat(p.price)
+          price: parseFloat(p.price),
+          category: p.category || "" 
         }));
 
         setReceipt({
@@ -39,7 +40,8 @@ export default function ReceiptEdit() {
       const payload = updatedProducts.map(p => ({
         id: p.id,
         product: p.name,
-        price: parseFloat(p.price)
+        price: parseFloat(p.price),
+        category: p.category
       }));
 
       await updateReceiptProducts(receipt.id, payload);

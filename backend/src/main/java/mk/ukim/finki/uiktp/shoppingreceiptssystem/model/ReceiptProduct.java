@@ -14,6 +14,8 @@ public class ReceiptProduct {
 
     private BigDecimal price;
 
+    private String category;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "receipt_id")
     @JsonBackReference
@@ -21,9 +23,10 @@ public class ReceiptProduct {
 
     public ReceiptProduct() {}
 
-    public ReceiptProduct(String product, BigDecimal price, Receipt receipt) {
+    public ReceiptProduct(String product, BigDecimal price, String category, Receipt receipt) {
         this.product = product;
         this.price = price;
+        this.category = category;
         this.receipt = receipt;
     }
 
@@ -35,6 +38,9 @@ public class ReceiptProduct {
 
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
+
+    public String getCategory() { return category; }
+    public void setCategory(String category) { this.category = category; }
 
     public Receipt getReceipt() { return receipt; }
     public void setReceipt(Receipt receipt) { this.receipt = receipt; }
