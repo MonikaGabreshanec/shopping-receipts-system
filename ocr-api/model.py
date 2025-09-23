@@ -13,11 +13,10 @@ for d in data:
     if "category" in d and d["category"] in label2id:
         d["label"] = label2id[d["category"]]
     else:
-        # ако нема category, assign Друго
         d["label"] = label2id["Друго"]
 
 dataset = Dataset.from_list(data)
-dataset = dataset.train_test_split(test_size=0.2)
+dataset = dataset.train_test_split(test_size=0.2, seed=42)
 train_dataset = dataset["train"]
 test_dataset = dataset["test"]
 
@@ -25,7 +24,6 @@ test_dataset = dataset["test"]
 model_name = "distilbert-base-multilingual-cased"
 tokenizer = AutoTokenizer.from_pretrained(model_name)
 
-tokenizer.add_special_tokens({'additional_special_tokens': ['[KEY]']})
 
 def tokenize(batch):
     return tokenizer(batch["product_name"], padding=True, truncation=True)
@@ -45,8 +43,9 @@ model.resize_token_embeddings(len(tokenizer))
 
 training_args = TrainingArguments(
     output_dir="./receipt_model",
-    num_train_epochs=15,
-    per_device_train_batch_size=4,
+    num_train_epochs=20,
+    per_device_train_batch_size=8,
+    weight_decay=0.01,
     learning_rate=2e-5,
     logging_dir="./logs",
     logging_steps=5

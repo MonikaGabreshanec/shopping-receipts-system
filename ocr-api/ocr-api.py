@@ -121,10 +121,14 @@ def extract_products_cutoff(text):
 
     return products
 
+import re
+
 def normalize_text(text):
     text = text.upper()
+    text = re.split(r'\d', text)[0]
     text = re.sub(r'[^A-ZА-Ш\s]', '', text)
-    return text.strip()
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 def classify_product(product_name):
     text = normalize_text(product_name)
@@ -135,7 +139,7 @@ def classify_product(product_name):
             ft_category = ft_result[0]['label']
             ft_confidence = ft_result[0]['score']
             print(f"Fine-tuned: {ft_category} (confidence: {ft_confidence:.2f})")
-            if ft_confidence > 0.5:
+            if ft_confidence > 0.6:
                 print(f"Fine-tuned победи: {ft_category}")
                 return ft_category
     except Exception as e:
@@ -146,12 +150,8 @@ def classify_product(product_name):
         confidence = zs_result['scores'][0]
         predicted_category = zs_result['labels'][0]
         print(f"Zero-shot: {predicted_category} (confidence: {confidence:.2f})")
-        if confidence > 0.5:
+        if confidence > 0.6:
             print(f" Zero-shot победи: {predicted_category}")
-            return predicted_category
-        # Ако сакаш, може да имаш и средно-сигурен fallback:
-        elif confidence > 0.5 and predicted_category != "Друго":
-            print(f" Zero-shot средно сигурен: {predicted_category}")
             return predicted_category
     except Exception as e:
         print(f" Zero-shot грешка: {e}")
