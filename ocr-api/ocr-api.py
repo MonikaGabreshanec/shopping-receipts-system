@@ -196,5 +196,118 @@ def classify_text_products():
 
     return jsonify(result)
 
+from difflib import SequenceMatcher
+from jiwer import wer
+import Levenshtein
+from rapidfuzz import fuzz
+from sklearn.metrics import precision_score, recall_score, f1_score
+@app.route("/evaluate", methods=["POST"])
+def evaluate():
+    data = request.get_json()
+    if not data:
+        return jsonify({"error": "No data received"}), 400
+
+    ground_truth_text = data.get("ground_truth_text", "")
+    predicted_text = data.get("predicted_text", "")
+    ground_truth_products = data.get("ground_truth_products", [])
+    predicted_products = data.get("predicted_products", [])
+
+    # --- OCR Metrics: WER and CER ---
+    def cer(ref, hyp):
+        return Levenshtein.distance(ref, hyp) / max(len(ref), 1)
+
+    def wer_metric(ref, hyp):
+        return wer(ref, hyp)
+
+    ocr_metrics = {
+        "WER": round(wer_metric(ground_truth_text, predicted_text), 2),
+        "CER": round(cer(ground_truth_text, predicted_text), 2)
+    }
+
+    # --- Product Matching (fuzzy) ---
+    threshold = 85  # similarity threshold (0-100 scale)
+    matched_pairs = []  # store (i_gt, j_pred)
+
+    for i, gt in enumerate(ground_truth_products):
+        gt_name = gt["product"].upper()
+        best_match = None
+        best_score = 0
+
+        for j, pred in enumerate(predicted_products):
+            if j in [p[1] for p in matched_pairs]:
+                continue
+            pred_name = pred["product"].upper()
+            score = fuzz.ratio(gt_name, pred_name)
+            if score > best_score:
+                best_score = score
+                best_match = j
+
+        if best_match is not None and best_score >= threshold:
+            matched_pairs.append((i, best_match))
+
+    # --- Precision, Recall, F1 ---
+    tp = len(matched_pairs)
+    precision = tp / max(len(predicted_products), 1)
+    recall = tp / max(len(ground_truth_products), 1)
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
+
+    # --- Price Accuracy (independent of product name) ---
+    correct_prices = 0
+    gt_prices = [int(float(p.get("price", "0").replace(",", "."))) for p in ground_truth_products]
+    pred_prices = [int(float(p.get("price", "0").replace(",", "."))) for p in predicted_products]
+
+    # Count how many ground truth prices appear in predicted prices
+    for price in gt_prices:
+        if price in pred_prices:
+            correct_prices += 1
+            pred_prices.remove(price)  # avoid counting the same predicted price twice
+
+    price_accuracy = correct_prices / max(len(gt_prices), 1)
+
+    # --- Category Accuracy ---
+    correct_categories = 0
+    total_categories = min(len(ground_truth_products), len(predicted_products))
+    for gt, pred in zip(ground_truth_products, predicted_products):
+        if gt.get("category", "").upper() == pred.get("category", "").upper():
+            correct_categories += 1
+
+    category_accuracy = correct_categories / max(total_categories, 1)
+
+    # --- Category-level metrics (independent of names) ---
+    gt_cats = [p.get("category", "Друго").upper() for p in ground_truth_products]
+    pred_cats = [p.get("category", "Друго").upper() for p in predicted_products]
+
+    max_len = max(len(gt_cats), len(pred_cats))
+    gt_cats += ["Друго"] * (max_len - len(gt_cats))
+    pred_cats += ["Друго"] * (max_len - len(pred_cats))
+
+    category_precision = precision_score(gt_cats, pred_cats, average="micro", zero_division=0)
+    category_recall = recall_score(gt_cats, pred_cats, average="micro", zero_division=0)
+    category_f1 = f1_score(gt_cats, pred_cats, average="micro", zero_division=0)
+
+    receipt_exact_match = int(len(matched_pairs) == len(ground_truth_products) and len(matched_pairs) == len(predicted_products))
+
+    product_metrics = {
+        "precision": round(precision, 2),
+        "recall": round(recall, 2),
+        "f1": round(f1, 2),
+        "price_accuracy": round(price_accuracy, 2),
+        "category_accuracy": round(category_accuracy, 2),
+        "receipt_exact_match": receipt_exact_match
+    }
+
+    category_metrics = {
+        "category_precision": round(category_precision, 2),
+        "category_recall": round(category_recall, 2),
+        "category_f1": round(category_f1, 2)
+    }
+
+    return jsonify({
+        "ocr_metrics": ocr_metrics,
+        "product_metrics": product_metrics,
+        "category_metrics": category_metrics
+    })
+
+
 if __name__=="__main__":
     app.run(host="0.0.0.0", port=5001)
