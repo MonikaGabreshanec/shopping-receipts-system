@@ -70,7 +70,7 @@ export default function ReceiptProductsForm({ receiptId, initialProducts, onSave
                             }
                             placeholder="Цена"
                             step="0.01"
-                            style={{ maxWidth: "100px" }}
+                            style={{ maxWidth: "80px" }}
                         />
 
                         {/* Category dropdown */}
@@ -78,7 +78,7 @@ export default function ReceiptProductsForm({ receiptId, initialProducts, onSave
                             className="form-control"
                             value={p.category}
                             onChange={(e) => handleChange(index, "category", e.target.value)}
-                            style={{ maxWidth: "140px" }}
+                            style={{ maxWidth: "125px" }}
                         >
                             {CATEGORIES.map((cat) => (
                                 <option key={cat} value={cat}>
