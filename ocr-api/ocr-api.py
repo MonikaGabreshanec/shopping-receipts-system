@@ -1,15 +1,16 @@
 from flask import Flask, request, jsonify
+from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
+from PIL import Image, ImageEnhance
 import pytesseract
 import cv2
 import numpy as np
-from PIL import Image, ImageEnhance
 import io
 import re
 import os
-
-from transformers import pipeline, AutoTokenizer, AutoModelForSequenceClassification
-from sentence_transformers import SentenceTransformer, util
-import torch
+from jiwer import wer
+import Levenshtein
+from rapidfuzz import fuzz
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 os.environ['TESSDATA_PREFIX'] = r"C:\Program Files\Tesseract-OCR\tessdata"
@@ -17,7 +18,6 @@ os.environ['TESSDATA_PREFIX'] = r"C:\Program Files\Tesseract-OCR\tessdata"
 app = Flask(__name__)
 
 CATEGORIES = ["Храна", "Пијалоци","Козметика","Хигиена", "Домаќинство", "Електроника", "Друго"]
-
 
 EXCLUDE_KEYWORDS = [
     'ДДВ', 'ДАВ', 'ААВ', 'ПРОМЕТ', 'ВКУПНО', 'ВКУЛНО', 'ИЗНОС',
@@ -32,8 +32,6 @@ ft_pipeline = pipeline("text-classification", model=ft_model, tokenizer=ft_token
 
 zs_classifier = pipeline("zero-shot-classification", model="joeddav/xlm-roberta-large-xnli")
 
-embedder = SentenceTransformer("paraphrase-multilingual-MiniLM-L12-v2")
-category_embeddings = embedder.encode(CATEGORIES, convert_to_tensor=True)
 
 def is_summary_line(line):
     return any(kw in line.upper() for kw in EXCLUDE_KEYWORDS) or re.search(r'(А|Б)=\s*\d+,\d+', line)
@@ -121,8 +119,6 @@ def extract_products_cutoff(text):
 
     return products
 
-import re
-
 def normalize_text(text):
     text = text.upper()
     text = re.split(r'\d', text)[0]
@@ -138,9 +134,7 @@ def classify_product(product_name):
         if ft_result:
             ft_category = ft_result[0]['label']
             ft_confidence = ft_result[0]['score']
-            print(f"Fine-tuned: {ft_category} (confidence: {ft_confidence:.2f})")
             if ft_confidence > 0.6:
-                print(f"Fine-tuned победи: {ft_category}")
                 return ft_category
     except Exception as e:
         print(f" Fine-tuned грешка: {e}")
@@ -149,13 +143,10 @@ def classify_product(product_name):
         zs_result = zs_classifier(text, candidate_labels=CATEGORIES)
         confidence = zs_result['scores'][0]
         predicted_category = zs_result['labels'][0]
-        print(f"Zero-shot: {predicted_category} (confidence: {confidence:.2f})")
         if confidence > 0.6:
-            print(f" Zero-shot победи: {predicted_category}")
             return predicted_category
     except Exception as e:
         print(f" Zero-shot грешка: {e}")
-
     return "Друго"
 
 @app.route("/ocr", methods=["POST"])
@@ -167,20 +158,16 @@ def ocr():
     processed = preprocess_image(image_bytes)
     text = pytesseract.image_to_string(processed, lang="mkd+srp+rus")
 
-    print("\n📄 OCR preview")
-    print("-"*40)
     for line in text.splitlines():
         line=line.strip()
         if line:
             print(line)
-    print("-"*40)
-
     products = extract_products_cutoff(text)
     for prod in products:
         prod["category"] = classify_product(prod["product"])
-        print(f"Product: {prod['product']} | Price: {prod['price']} | Category: {prod['category']}")
-
     return jsonify(products)
+
+
 @app.route("/classify", methods=["POST"])
 def classify_text_products():
     data = request.json
@@ -196,11 +183,8 @@ def classify_text_products():
 
     return jsonify(result)
 
-from difflib import SequenceMatcher
-from jiwer import wer
-import Levenshtein
-from rapidfuzz import fuzz
-from sklearn.metrics import precision_score, recall_score, f1_score
+
+
 @app.route("/evaluate", methods=["POST"])
 def evaluate():
     data = request.get_json()
@@ -212,7 +196,6 @@ def evaluate():
     ground_truth_products = data.get("ground_truth_products", [])
     predicted_products = data.get("predicted_products", [])
 
-    # --- OCR Metrics: WER and CER ---
     def cer(ref, hyp):
         return Levenshtein.distance(ref, hyp) / max(len(ref), 1)
 
@@ -224,9 +207,8 @@ def evaluate():
         "CER": round(cer(ground_truth_text, predicted_text), 2)
     }
 
-    # --- Product Matching (fuzzy) ---
-    threshold = 85  # similarity threshold (0-100 scale)
-    matched_pairs = []  # store (i_gt, j_pred)
+    threshold = 85
+    matched_pairs = []
 
     for i, gt in enumerate(ground_truth_products):
         gt_name = gt["product"].upper()
@@ -245,26 +227,22 @@ def evaluate():
         if best_match is not None and best_score >= threshold:
             matched_pairs.append((i, best_match))
 
-    # --- Precision, Recall, F1 ---
     tp = len(matched_pairs)
     precision = tp / max(len(predicted_products), 1)
     recall = tp / max(len(ground_truth_products), 1)
     f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0
 
-    # --- Price Accuracy (independent of product name) ---
     correct_prices = 0
     gt_prices = [int(float(p.get("price", "0").replace(",", "."))) for p in ground_truth_products]
     pred_prices = [int(float(p.get("price", "0").replace(",", "."))) for p in predicted_products]
 
-    # Count how many ground truth prices appear in predicted prices
     for price in gt_prices:
         if price in pred_prices:
             correct_prices += 1
-            pred_prices.remove(price)  # avoid counting the same predicted price twice
+            pred_prices.remove(price)
 
     price_accuracy = correct_prices / max(len(gt_prices), 1)
 
-    # --- Category Accuracy ---
     correct_categories = 0
     total_categories = min(len(ground_truth_products), len(predicted_products))
     for gt, pred in zip(ground_truth_products, predicted_products):
@@ -273,7 +251,6 @@ def evaluate():
 
     category_accuracy = correct_categories / max(total_categories, 1)
 
-    # --- Category-level metrics (independent of names) ---
     gt_cats = [p.get("category", "Друго").upper() for p in ground_truth_products]
     pred_cats = [p.get("category", "Друго").upper() for p in predicted_products]
 

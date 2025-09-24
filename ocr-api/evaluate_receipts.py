@@ -29,7 +29,6 @@ def average_metrics(results):
     avg = {}
 
     for key in ["ocr_metrics", "product_metrics", "category_metrics"]:
-        # collect dicts from each result
         metrics_list = [r[key] for r in results]
         avg[key] = {
             k: round(float(np.mean([m[k] for m in metrics_list])), 2)
@@ -54,16 +53,12 @@ if __name__ == "__main__":
         )
 
         if not os.path.exists(annotation_path):
-            print(f"⚠️ No annotation found for {fname}, skipping...")
             continue
-
-        print(f"📄 Evaluating {fname} ...")
         metrics = evaluate_receipt(receipt_path, annotation_path)
         results.append(metrics)
 
     if results:
         avg = average_metrics(results)
-        print("\n✅ AVERAGE METRICS ACROSS RECEIPTS:")
         print(json.dumps(avg, indent=2, ensure_ascii=False))
     else:
-        print("❌ No receipts evaluated")
+        print("No receipts evaluated")
